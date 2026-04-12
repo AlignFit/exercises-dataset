@@ -36,10 +36,17 @@ jobs:
       - name: Instalar dependências do sistema
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1
+          sudo apt-get install -y \
+            libgl1 \
+            libglib2.0-0 \
+            libsm6 \
+            libxext6 \
+            libxrender-dev \
+            libgles2
 
       - name: Instalar dependências Python
         run: |
+          pip install --upgrade pip
           pip install pandas numpy opencv-python mediapipe scikit-learn
 
       - name: Rodar pipeline
