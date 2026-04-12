@@ -1,0 +1,48 @@
+name: Gerar Dataset
+
+on:
+  workflow_dispatch:
+    inputs:
+      video:
+        description: "Nome do vídeo (ex: agachamento.mp4)"
+        required: true
+
+      classe:
+        description: "Classe (correto / errado)"
+        required: true
+
+      exercise:
+        description: "Exercício"
+        required: true
+
+      erro:
+        description: "Tipo de erro (opcional)"
+        required: false
+        default: ""
+
+jobs:
+  build-dataset:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Rodar pipeline
+        run: |
+          python pipeline.py \
+            --video "${{ github.event.inputs.video }}" \
+            --classe "${{ github.event.inputs.classe }}" \
+            --exercise "${{ github.event.inputs.exercise }}" \
+            --erro "${{ github.event.inputs.erro }}"
+
+      - name: Upload dataset
+        uses: actions/upload-artifact@v3
+        with:
+          name: dataset
+          path: dataset/dataset.csv
