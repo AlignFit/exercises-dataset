@@ -17,8 +17,8 @@ S3_KEY = "dataset/dataset.csv"
 
 def baixar_dataset_s3(local_path):
     print("\n🔽 Tentando baixar dataset do S3...")
-    print(f"Bucket: {S3_BUCKET}")
-    print(f"Key: {S3_KEY}")
+    print(f"   Bucket: {S3_BUCKET}")
+    print(f"   Key: {S3_KEY}")
 
     s3 = boto3.client("s3")
 
@@ -68,13 +68,11 @@ def subir_pasta_s3(local_folder, s3_prefix):
     print("✅ Upload concluído")
 
 def run_pipeline(video_path, classe, exercise, erro=None):
-    print("\n🚀 INICIANDO PIPELINE")
-    print(f"Video path: {video_path}")
-    print(f"Classe: {classe}")
-    print(f"Exercício: {exercise}")
-    print(f"Erro: {erro}")
-
-    print(f"Arquivo de vídeo existe? {os.path.exists(video_path)}")
+    print("\n\nPipeline iniciada:")
+    print(f"   Video path: {video_path}")
+    print(f"   Classe: {classe}")
+    print(f"   Exercício: {exercise}")
+    print(f"   Erro: {erro}")
 
     base_path = "dataset"
 
@@ -84,7 +82,7 @@ def run_pipeline(video_path, classe, exercise, erro=None):
     keypoints_path = os.path.join(exercise_path, "keypoints")
     labels_path = os.path.join(exercise_path, "labels")
 
-    print("\n📁 Criando diretórios...")
+    print("\n\nCriando diretórios:")
     print(images_path)
     print(keypoints_path)
     print(labels_path)
@@ -94,27 +92,19 @@ def run_pipeline(video_path, classe, exercise, erro=None):
     os.makedirs(labels_path, exist_ok=True)
 
     run_id = str(uuid.uuid4())[:8]
-    print(f"\n🆔 Run ID: {run_id}")
-
-    print("\n🎞️ Extraindo frames...")
+    
     extract_frames(
         video_path=video_path,
         output_folder=images_path,
         prefix=run_id
     )
 
-    print(f"Frames gerados: {len(os.listdir(images_path))}")
-
-    print("\n🧠 Extraindo keypoints...")
     extract_keypoints(
         image_folder=images_path,
         output_folder=keypoints_path,
         prefix=run_id
     )
 
-    print(f"Keypoints gerados: {len(os.listdir(keypoints_path))}")
-
-    print("\n🏷️ Gerando labels...")
     set_labels(
         pasta_keypoints=keypoints_path,
         pasta_labels=labels_path,
@@ -123,19 +113,15 @@ def run_pipeline(video_path, classe, exercise, erro=None):
         erro=erro
     )
 
-    print(f"Labels gerados: {len(os.listdir(labels_path))}")
-
-    print("\n📊 Montando dataset novo...")
     df_novo = build_dataset(
         pasta_keypoints=keypoints_path,
         pasta_labels=labels_path
     )
 
-    print(f"Linhas novas geradas: {len(df_novo)}")
+    print(f"\n\nLinhas novas geradas: {len(df_novo)}")
 
     csv_path = os.path.join(base_path, "dataset.csv")
 
-    print("\n📥 Verificando dataset anterior...")
     existe = baixar_dataset_s3(csv_path)
 
     if existe:
@@ -145,17 +131,11 @@ def run_pipeline(video_path, classe, exercise, erro=None):
 
         df_final = pd.concat([df_antigo, df_novo], ignore_index=True)
     else:
-        print("🆕 Criando novo dataset")
         df_final = df_novo
-
-    print(f"📦 Total de linhas finais: {len(df_final)}")
 
     df_final = df_final.drop_duplicates()
 
-    print("\n💾 Salvando dataset local...")
     df_final.to_csv(csv_path, index=False)
-
-    print(f"Arquivo existe localmente? {os.path.exists(csv_path)}")
 
     subir_dataset_s3(csv_path)
 
@@ -165,7 +145,7 @@ def run_pipeline(video_path, classe, exercise, erro=None):
     subir_pasta_s3(keypoints_path, f"{base_s3_path}/keypoints")
     subir_pasta_s3(labels_path, f"{base_s3_path}/labels")
 
-    print("\n✅ PIPELINE FINALIZADO COM SUCESSO")
+    print("\nPipeline finalizado")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
