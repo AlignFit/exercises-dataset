@@ -141,3 +141,20 @@ def run_pipeline(video_path, classe, exercise, erro=None):
     subir_dataset_s3(csv_path)
 
     print("\n✅ PIPELINE FINALIZADO COM SUCESSO")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--video", required=True)
+    parser.add_argument("--classe", required=True)
+    parser.add_argument("--exercise", required=True)
+    parser.add_argument("--erro", required=False)
+
+    args = parser.parse_args()
+
+    run_pipeline(
+        video_path=args.video,
+        classe=args.classe,
+        exercise=args.exercise,
+        erro=args.erro
+    )
