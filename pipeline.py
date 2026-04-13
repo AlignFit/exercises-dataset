@@ -2,11 +2,35 @@ import os
 import argparse
 import uuid
 import pandas as pd
+import boto3
+from botocore.exceptions import ClientError
 
 from src.extract_frames import extract_frames
 from src.extract_keypoints import extract_keypoints
 from src.set_labels import set_labels
 from src.build_dataset import build_dataset
+
+
+S3_BUCKET = os.getenv("S3_BUCKET_NAME")
+S3_KEY = "dataset/dataset.csv"
+
+
+def baixar_dataset_s3(local_path):
+    s3 = boto3.client("s3")
+
+    try:
+        s3.download_file(S3_BUCKET, S3_KEY, local_path)
+        print("Dataset antigo baixado do S3")
+        return True
+    except ClientError:
+        print("Nenhum dataset anterior encontrado no S3")
+        return False
+
+
+def subir_dataset_s3(local_path):
+    s3 = boto3.client("s3")
+    s3.upload_file(local_path, S3_BUCKET, S3_KEY)
+    print("Dataset enviado para o S3")
 
 
 def run_pipeline(video_path, classe, exercise, erro=None):
@@ -51,7 +75,9 @@ def run_pipeline(video_path, classe, exercise, erro=None):
 
     csv_path = os.path.join(base_path, "dataset.csv")
 
-    if os.path.exists(csv_path):
+    existe = baixar_dataset_s3(csv_path)
+
+    if existe:
         df_antigo = pd.read_csv(csv_path)
         df_final = pd.concat([df_antigo, df_novo], ignore_index=True)
     else:
@@ -59,22 +85,6 @@ def run_pipeline(video_path, classe, exercise, erro=None):
 
     df_final.to_csv(csv_path, index=False)
 
-    print(f"Dataset atualizado em: {csv_path}")
+    subir_dataset_s3(csv_path)
 
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("--video", required=True)
-    parser.add_argument("--classe", required=True)
-    parser.add_argument("--exercise", required=True)
-    parser.add_argument("--erro", required=False)
-
-    args = parser.parse_args()
-
-    run_pipeline(
-        video_path=args.video,
-        classe=args.classe,
-        exercise=args.exercise,
-        erro=args.erro
-    )
+    print(f"Dataset atualizado e sincronizado com S3")
