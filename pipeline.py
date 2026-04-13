@@ -67,11 +67,6 @@ def run_pipeline(video_path, classe, exercise, erro=None):
     keypoints_path = os.path.join(exercise_path, "keypoints")
     labels_path = os.path.join(exercise_path, "labels")
 
-    print("\n\nCriando diretórios:")
-    print(images_path)
-    print(keypoints_path)
-    print(labels_path)
-
     os.makedirs(images_path, exist_ok=True)
     os.makedirs(keypoints_path, exist_ok=True)
     os.makedirs(labels_path, exist_ok=True)
@@ -103,16 +98,12 @@ def run_pipeline(video_path, classe, exercise, erro=None):
         pasta_labels=labels_path
     )
 
-    print(f"\n\nLinhas novas geradas: {len(df_novo)}")
-
     csv_path = os.path.join(base_path, "dataset.csv")
 
     existe = baixar_dataset_s3(csv_path)
 
     if existe:
-        print("📎 Lendo dataset antigo...")
         df_antigo = pd.read_csv(csv_path)
-        print(f"Linhas antigas: {len(df_antigo)}")
 
         df_final = pd.concat([df_antigo, df_novo], ignore_index=True)
     else:
