@@ -47,6 +47,25 @@ def subir_dataset_s3(local_path):
         print("❌ Erro ao subir para o S3")
         print(f"Erro: {e}")
 
+def subir_pasta_s3(local_folder, s3_prefix):
+    print(f"\n📤 Subindo {local_folder} para {s3_prefix}")
+
+    s3 = boto3.client("s3")
+
+    for root, dirs, files in os.walk(local_folder):
+        for file in files:
+            local_path = os.path.join(root, file)
+
+            relative_path = os.path.relpath(local_path, local_folder)
+
+            s3_path = f"{s3_prefix}/{relative_path}"
+
+            try:
+                s3.upload_file(local_path, S3_BUCKET, s3_path)
+            except Exception as e:
+                print(f"❌ Erro ao subir {file}: {e}")
+
+    print("✅ Upload concluído")
 
 def run_pipeline(video_path, classe, exercise, erro=None):
     print("\n🚀 INICIANDO PIPELINE")
@@ -139,6 +158,12 @@ def run_pipeline(video_path, classe, exercise, erro=None):
     print(f"Arquivo existe localmente? {os.path.exists(csv_path)}")
 
     subir_dataset_s3(csv_path)
+
+    base_s3_path = f"data/{exercise}/{classe}"
+
+    subir_pasta_s3(images_path, f"{base_s3_path}/images")
+    subir_pasta_s3(keypoints_path, f"{base_s3_path}/keypoints")
+    subir_pasta_s3(labels_path, f"{base_s3_path}/labels")
 
     print("\n✅ PIPELINE FINALIZADO COM SUCESSO")
 
