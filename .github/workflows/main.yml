@@ -24,9 +24,14 @@ jobs:
   build-dataset:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write   # 🔥 ESSENCIAL para conseguir dar push
+
     steps:
       - name: Checkout código
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0   # importante para commit/push
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -60,8 +65,12 @@ jobs:
             --exercise "${{ github.event.inputs.exercise }}" \
             --erro "${{ github.event.inputs.erro }}"
 
-      - name: Upload dataset
-        uses: actions/upload-artifact@v4
-        with:
-          name: dataset
-          path: dataset/dataset.csv
+      - name: Commit e push dos dados
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+
+          git add dataset/ frames/ keypoints/ labels/ || true
+
+          git commit -m "Atualiza dataset automaticamente [skip ci]" || echo "Nada para commitar"
+          git push
