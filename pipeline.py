@@ -16,40 +16,25 @@ S3_KEY = "dataset/dataset.csv"
 
 
 def baixar_dataset_s3(local_path):
-    print("\n🔽 Tentando baixar dataset do S3...")
-    print(f"   Bucket: {S3_BUCKET}")
-    print(f"   Key: {S3_KEY}")
-
     s3 = boto3.client("s3")
 
     try:
         s3.download_file(S3_BUCKET, S3_KEY, local_path)
-        print("✅ Dataset antigo baixado do S3")
         return True
     except ClientError as e:
-        print("⚠️ Nenhum dataset anterior encontrado ou erro no S3")
         print(f"Erro detalhado: {e}")
         return False
 
 
 def subir_dataset_s3(local_path):
-    print("\n🔼 Enviando dataset para o S3...")
-    print(f"Arquivo local: {local_path}")
-    print(f"Bucket: {S3_BUCKET}")
-    print(f"Key: {S3_KEY}")
-
     s3 = boto3.client("s3")
 
     try:
         s3.upload_file(local_path, S3_BUCKET, S3_KEY)
-        print("✅ Dataset enviado para o S3")
     except Exception as e:
-        print("❌ Erro ao subir para o S3")
         print(f"Erro: {e}")
 
 def subir_pasta_s3(local_folder, s3_prefix):
-    print(f"\n📤 Subindo {local_folder} para {s3_prefix}")
-
     s3 = boto3.client("s3")
 
     for root, dirs, files in os.walk(local_folder):
@@ -63,7 +48,7 @@ def subir_pasta_s3(local_folder, s3_prefix):
             try:
                 s3.upload_file(local_path, S3_BUCKET, s3_path)
             except Exception as e:
-                print(f"❌ Erro ao subir {file}: {e}")
+                print(f"{e}")
 
     print("✅ Upload concluído")
 
