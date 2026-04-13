@@ -24,14 +24,9 @@ jobs:
   build-dataset:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write   # 🔥 ESSENCIAL para conseguir dar push
-
     steps:
       - name: Checkout código
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0   # importante para commit/push
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -55,22 +50,21 @@ jobs:
       - name: Instalar dependências Python
         run: |
           pip install --upgrade pip
-          pip install pandas numpy opencv-python mediapipe scikit-learn
+          pip install pandas numpy opencv-python mediapipe scikit-learn boto3
 
-      - name: Rodar pipeline
+      - name: Configurar AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Rodar pipeline (com integração S3)
+        env:
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
         run: |
           python pipeline.py \
             --video "${{ github.event.inputs.video }}" \
             --classe "${{ github.event.inputs.classe }}" \
             --exercise "${{ github.event.inputs.exercise }}" \
             --erro "${{ github.event.inputs.erro }}"
-
-      - name: Commit e push dos dados
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
-
-          git add dataset/ frames/ keypoints/ labels/ || true
-
-          git commit -m "Atualiza dataset automaticamente [skip ci]" || echo "Nada para commitar"
-          git push
