@@ -3,8 +3,8 @@ name: Gerar Dataset
 on:
   workflow_dispatch:
     inputs:
-      video:
-        description: "Nome do vídeo (ex: agachamento.mp4)"
+      folder:
+        description: "Nome da pasta com vídeos"
         required: true
 
       classe:
@@ -65,7 +65,7 @@ jobs:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
         run: |
           python pipeline.py \
-            --video "${{ github.event.inputs.video }}" \
+            --folder "${{ github.event.inputs.folder }}" \
             --classe "${{ github.event.inputs.classe }}" \
             --exercise "${{ github.event.inputs.exercise }}" \
             --erro "${{ github.event.inputs.erro }}"
