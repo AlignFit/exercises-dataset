@@ -13,7 +13,7 @@ import pandas as pd
 # =========================================================
 
 # Caminho da pasta com os videos
-TARGET_FOLDER = r"..\videos\desenvolvimento\errado"
+TARGET_FOLDER = r"..\agachamento"
 
 # Modelo YOLO Pose
 MODEL_PATH = r"..\utils\yolov8n-pose.pt"
@@ -25,16 +25,16 @@ OUTPUT_CSV = r"..\\datasets\raw-dataset.csv"
 FRAME_SKIP = 5
 
 # Tipo do exercicio: desenvolvimento, agachamento, elevacao_lateral, biceps
-EXERCISE_TYPE = "desenvolvimento"
+EXERCISE_TYPE = "agachamento"
 
 # Tipo de execução: correta ou errada
-EXECUTION_TYPE = "correta"
+EXECUTION_TYPE = "errada"
 
 # =========================================================
 # INFORMAR ERRO MANUALMENTE
 # =========================================================
 
-ERROR_TYPE = "nenhum"
+ERROR_TYPE = "mal executado"
 
 # =========================================================
 # KEYPOINTS

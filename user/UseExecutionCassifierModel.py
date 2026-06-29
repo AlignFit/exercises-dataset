@@ -27,7 +27,7 @@ MODEL_PATHS = {
     "biceps":
         r"..\models\modelo-de-classificacao-de-execucao-biceps.pkl",
 
-    "elevacaoLateral":
+    "elevacao_lateral":
         r"..\models\modelo-de-classificacao-de-execucao-elevacao-lateral.pkl",
 
     "desenvolvimento":

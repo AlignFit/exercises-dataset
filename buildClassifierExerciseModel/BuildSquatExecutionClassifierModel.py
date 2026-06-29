@@ -15,11 +15,11 @@ from xgboost import XGBClassifier
 # CONFIGURAÇÕES
 # =========================================================
 
-DATASET_PATH = r"..\raw-dataset.csv"
+DATASET_PATH = r"..\\datasets\raw-dataset.csv"
 
 TARGET_EXERCISE = "agachamento"
 
-MODEL_OUTPUT = r"..\models\modelo-de-classificacao-de-execucao-agachamento.pkl",
+MODEL_OUTPUT = r"..\models\modelo-de-classificacao-de-execucao-agachamento.pkl"
 
 # =========================================================
 # CARREGAR DATASET

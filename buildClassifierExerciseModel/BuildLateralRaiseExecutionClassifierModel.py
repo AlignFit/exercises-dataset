@@ -17,7 +17,7 @@ from xgboost import XGBClassifier
 
 DATASET_PATH = r"..\\datasets\raw-dataset.csv"
 
-TARGET_EXERCISE = "elevacaoLateral"
+TARGET_EXERCISE = "elevacao_lateral"
 
 MODEL_OUTPUT = r"..\models\modelo-de-classificacao-de-execucao-elevacao-lateral.pkl"
 
