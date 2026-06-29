@@ -15,7 +15,7 @@ from xgboost import XGBClassifier
 # CONFIGURAÇÕES
 # =========================================================
 
-DATASET_PATH = r"..\\datasets\raw-dataset.csv"
+DATASET_PATH = r"..\datasets\raw-dataset.csv"
 
 TARGET_EXERCISE = "agachamento"
 
