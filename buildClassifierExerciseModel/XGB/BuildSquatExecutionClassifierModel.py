@@ -6,6 +6,8 @@ import pandas as pd
 import numpy as np
 import joblib
 
+from pathlib import Path
+
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 
@@ -15,11 +17,14 @@ from xgboost import XGBClassifier
 # CONFIGURAÇÕES
 # =========================================================
 
-DATASET_PATH = r"..\datasets\raw-dataset.csv"
+BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BASE_DIR.parent.parent
+
+DATASET_PATH = PROJECT_ROOT / "datasets" / "raw-dataset.csv"
 
 TARGET_EXERCISE = "agachamento"
 
-MODEL_OUTPUT = r"..\models\modelo-de-classificacao-de-execucao-agachamento.pkl"
+MODEL_OUTPUT = PROJECT_ROOT / "models" / "modelo-de-classificacao-de-execucao-agachamento.pkl"
 
 # =========================================================
 # CARREGAR DATASET
