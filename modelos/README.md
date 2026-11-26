@@ -6,7 +6,7 @@ em produção, `iac-infra/lambda/inference.py`).
 | Arquivo | Gerado por | Classe | O que faz |
 |---|---|---|---|
 | `classificador-exercicio.pkl` | `pipeline/2_treinar_classificador_exercicio.py` | `alignfit.modelos.ClassificadorExercicio` | identifica o exercício (`.predict` devolve o nome) |
-| `execucao-agachamento.pkl` | `pipeline/3_treinar_classificador_execucao.py` | `alignfit.modelos.ModeloConformidade` | 0 = correta, 1 = errada |
+| `execucao-agachamento.pkl` | `pipeline/3_treinar_classificador_execucao.py` | `alignfit.modelos.ClassificadorExecucaoXGB` (ou `ModeloConformidade` com `--modelo conformidade`) | 0 = correta, 1 = errada |
 | `execucao-biceps.pkl` | idem | idem | idem |
 | `execucao-desenvolvimento.pkl` | idem | idem | idem |
 | `execucao-elevacao-lateral.pkl` | idem | idem | idem |
@@ -27,7 +27,7 @@ exercicio = joblib.load("modelos/classificador-exercicio.pkl").predict(X)[0]
 execucao  = joblib.load(f"modelos/execucao-{exercicio.replace('_', '-')}.pkl").predict(X)[0]
 ```
 
-Os modelos de execução também expõem `afastamento(X)` (quanto a execução se
+O XGBoost de execução expõe `probabilidade_errada(X)`; a conformidade expõe `afastamento(X)` (quanto a execução se
 afasta do padrão correto) e `limiar` (acima dele, a execução é considerada
 errada).
 

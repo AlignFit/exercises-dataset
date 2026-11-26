@@ -61,6 +61,45 @@ class ClassificadorExercicio:
         return list(self.rotulos.classes_)
 
 
+class ClassificadorExecucaoXGB:
+    """Estágio 3 (padrão): diz se a execução está correta ou errada.
+
+    XGBoost binário (0 = correta, 1 = errada) sobre atributos biomecânicos +
+    coordenadas. Treinado só com os vídeos da equipe: os externos têm apenas
+    execuções corretas e, no modelo binário, viram um atalho (origem do
+    vídeo -> rótulo). As classes recebem pesos para compensar o desbalanço.
+
+    Alternativa: ModeloConformidade (abaixo), que na base v2 detectou mais
+    erros (ver experimentos/README.md)."""
+
+    versao_atributos = VERSAO_ATRIBUTOS
+
+    def __init__(self, exercicio: str, semente=42):
+        self.exercicio = exercicio
+        self.semente = semente
+
+    def fit(self, X: pd.DataFrame, y):
+        y = np.asarray(y)
+        self.colunas = list(X.columns)
+        peso_errada = (y == 0).sum() / max((y == 1).sum(), 1)
+        self.modelo = XGBClassifier(
+            n_estimators=100,
+            max_depth=2,
+            learning_rate=0.03,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=self.semente,
+        ).fit(X[self.colunas].values, y, sample_weight=np.where(y == 1, peso_errada, 1.0))
+        return self
+
+    def probabilidade_errada(self, X: pd.DataFrame) -> np.ndarray:
+        return self.modelo.predict_proba(X[self.colunas].values)[:, 1]
+
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        """1 = ERRADA, 0 = CORRETA."""
+        return (self.probabilidade_errada(X) >= 0.5).astype(int)
+
+
 # Medidas biomecânicas relevantes para cada exercício (definidas a partir dos
 # critérios de execução da Seção 4.2 do TCC, não ajustadas pelos dados).
 MEDIDAS_RELEVANTES = {
@@ -72,7 +111,8 @@ MEDIDAS_RELEVANTES = {
 
 
 class ModeloConformidade:
-    """Estágio 3: diz se a execução está correta (Seção 8 do TCC).
+    """Estágio 3 (alternativa): diz se a execução está correta (Seção 8 do TCC).
+    Use com `pipeline/3_treinar_classificador_execucao.py --modelo conformidade`.
 
     Em vez de aprender "correta x errada", aprende só o padrão da execução
     CORRETA: cada medida é padronizada pela média e desvio das execuções

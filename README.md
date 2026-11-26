@@ -28,9 +28,10 @@ elevação lateral.
    quadril, cotovelo e ombro, inclinação do tronco, alturas e larguras
    normalizadas pelo tamanho do tronco), resumidas por vídeo junto com as
    coordenadas (409 atributos). Um XGBoost identifica o exercício.
-3. **Classificação da execução (conformidade)** — o modelo do exercício
-   conhece o padrão das execuções **corretas** e mede quanto o vídeo se afasta
-   dele. Acima de um limiar, a execução é considerada errada (Seção 8 do TCC).
+3. **Classificação da execução** — um XGBoost por exercício diz se a execução
+   está correta ou errada, usando os mesmos atributos. Alternativa: o modelo de
+   **conformidade** (Seção 8 do TCC), que aprende só o padrão correto
+   (`pipeline/3_treinar_classificador_execucao.py --modelo conformidade`).
 
 ---
 
@@ -133,24 +134,32 @@ cd ../iac-infra && ./scripts/update.sh models
 ## Resultados atuais (base v2)
 
 Acurácia balanceada **por pessoa** (o modelo nunca viu a pessoa testada);
-50% equivale a um palpite aleatório. Entre parênteses, o modelo anterior
-(XGBoost só com coordenadas).
+50% equivale a um palpite aleatório.
 
-| Modelo | Por pessoa | Erradas detectadas | Corretas aceitas |
-|---|---|---|---|
-| Exercício | 94,0% (93,7%) | — | — |
-| Execução — agachamento | 68,1% (75,0%) | 75% | 75% |
-| Execução — bíceps | 79,2% (70,8%) | 100% | 42% |
-| Execução — desenvolvimento | 77,8% (62,5%) | 100% | 50% |
-| Execução — elevação lateral | 72,2% (65,3%) | 92% | 58% |
+**Exercício (XGBoost):** 94,0% (modelo anterior, só coordenadas: 93,7%).
+
+**Execução** — modelo em uso: XGBoost biomecânico. Para comparação, a
+conformidade e o modelo anterior (XGBoost só com coordenadas):
+
+| Exercício | XGBoost biomecânico (atual) | Erradas detectadas | Corretas aceitas | Conformidade | Anterior |
+|---|---|---|---|---|---|
+| Agachamento | 58,3% | 58% | 67% | 68,1% | 75,0% |
+| Bíceps | 70,8% | 91% | 42% | 79,2% | 70,8% |
+| Desenvolvimento | 79,2% | 92% | 83% | 77,8% | 62,5% |
+| Elevação lateral | 59,7% | 67% | 50% | 72,2% | 65,3% |
+| **Média** | **67,0%** | | | **74,3%** | **68,4%** |
 
 **Teste externo** (11 vídeos de elevação lateral correta, gravados fora da
-base): exercício identificado em 11/11 (antes 10/11); execução aceita como
-correta em 8/11 (antes 3/11).
+base): exercício identificado em 11/11 (anterior: 10/11); execução aceita
+como correta em 8/11 pelo XGBoost biomecânico e pela conformidade (anterior:
+3/11).
 
-O modelo de conformidade **prefere alertar a mais**: detecta quase todos os
-erros, mas parte das execuções corretas também é marcada como errada. O
-retorno ao usuário deve ser tratado como alerta ("possível erro, revise a
+> O XGBoost de execução usa a mesma taxa de aprendizado (0,03) nos 4
+> exercícios; ela não foi ajustada por exercício com os atributos novos. Com
+> a base atual, a conformidade tem média maior; reavaliar quando houver mais
+> vídeos (principalmente execuções erradas).
+
+O retorno ao usuário deve ser tratado como alerta ("possível erro, revise a
 técnica"), não como veredito.
 
 ## Histórico
@@ -159,4 +168,5 @@ técnica"), não como veredito.
 |---|---|
 | tag `v1-antes-da-reorganizacao` | estado antes da reorganização (nomes antigos: `adm/`, `user/`, `models/`…) |
 | commit `1a8be2c` | última versão com o modelo de coordenadas (XGBoost) |
-| atual | atributos biomecânicos + XGBoost (exercício) + conformidade (execução) |
+| commit `3cb0705` | atributos biomecânicos + XGBoost (exercício) + conformidade (execução) |
+| atual | atributos biomecânicos + XGBoost (exercício e execução) |

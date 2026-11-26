@@ -43,8 +43,12 @@ def main():
         x = X.loc[[video]]
         errada = modelo.predict(x)[0] == 1
         conf = "" if pd.isna(linha.confianca) else f" ({linha.confianca:.0%})"
+        if hasattr(modelo, "probabilidade_errada"):      # XGBoost
+            detalhe = f"chance de erro {modelo.probabilidade_errada(x)[0]:.0%}"
+        else:                                            # conformidade
+            detalhe = f"afastamento {modelo.afastamento(x)[0]:.2f} / limiar {modelo.limiar:.2f}"
         print(f"{video}: exercício={linha.exercicio}{conf}  execução={'ERRADA' if errada else 'CORRETA'}"
-              f"  [afastamento {modelo.afastamento(x)[0]:.2f} / limiar {modelo.limiar:.2f}]")
+              f"  [{detalhe}]")
 
 
 if __name__ == "__main__":
