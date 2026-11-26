@@ -1,1 +1,12 @@
+# Vídeos brutos (2,4 GB) — ficam só na máquina local / bucket S3
 /videos
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Saídas temporárias da inferência local e dos scripts legados
+dados/video-usuario.csv
+experimentos/legado/**/saida/
+experimentos/legado/extracao/base-v1-gerada.csv
