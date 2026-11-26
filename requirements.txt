@@ -1,4 +1,5 @@
-# Versões testadas em 26/11/2026 (Python 3.14)
+# Dependências do pipeline e da inferência (versões testadas em 26/11/2026, Python 3.14)
+# Instalação no Windows:  py -m pip install -r requirements.txt
 ultralytics==8.4.58      # YOLOv8-Pose (extração de keypoints)
 opencv-python==4.13.0.92 # leitura dos vídeos
 pandas==3.0.2
@@ -6,9 +7,3 @@ numpy==2.4.4
 scikit-learn==1.8.0
 xgboost==3.2.0
 joblib==1.5.3
-
-# Só para os notebooks em experimentos/notebooks/
-matplotlib
-seaborn
-tensorflow               # MLP com Softmax
-jupyter

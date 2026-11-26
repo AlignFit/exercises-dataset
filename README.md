@@ -63,8 +63,15 @@ exercises-dataset/
 ## Instalação
 
 ```bash
-pip install -r requirements.txt
+py -m pip install -r requirements.txt              # Windows
+python -m pip install -r requirements.txt          # Linux / macOS
+
+# só se for rodar os notebooks de experimentos/notebooks/
+py -m pip install -r requirements-notebooks.txt
 ```
+
+> No Windows, use `py -m pip` em vez de `pip`: o comando `pip` sozinho
+> normalmente não está no PATH.
 
 Todos os scripts podem ser executados **a partir de qualquer pasta**; os
 caminhos são resolvidos por `alignfit/caminhos.py`.

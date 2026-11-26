@@ -1,0 +1,7 @@
+# Dependências extras, só para os notebooks em experimentos/notebooks/
+# Instalação no Windows:  py -m pip install -r requirements-notebooks.txt
+-r requirements.txt
+matplotlib
+seaborn
+jupyter
+tensorflow   # MLP com Softmax; pode não ter versão estável para Python 3.14 (use 3.12 ou o Colab)
