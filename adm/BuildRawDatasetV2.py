@@ -62,6 +62,36 @@ if "--pasta" in sys.argv:
     if idx + 1 < len(sys.argv):
         video_folder = Path(sys.argv[idx + 1])
 
+# --externos: inclui também os vídeos organizados por pasta de exercício
+# (formato antigo/Kaggle: videos/<nome do exercicio>/<nome>_<n>.mp4).
+# Esses vídeos não têm pessoa nem execução no nome: o exercício vem da
+# pasta, a execução é "correta" (mesmo rótulo usado na base v1) e a
+# pessoa é "externo", com uma sessão por vídeo.
+INCLUIR_EXTERNOS = "--externos" in sys.argv
+
+# --juntar <csv>: concatena o resultado a um CSV já existente
+# (ex.: ../datasets/raw-dataset-v2_20261108_153228.csv)
+CSV_BASE = None
+if "--juntar" in sys.argv:
+    idx = sys.argv.index("--juntar")
+    if idx + 1 < len(sys.argv):
+        CSV_BASE = Path(sys.argv[idx + 1])
+
+# pasta -> (exercício, origem). A origem vira a coluna "pessoa",
+# para poder avaliar cada fonte separadamente.
+PASTAS_EXTERNAS = {
+    # base v1 / Kaggle
+    "barbell biceps curl": ("biceps", "externo"),
+    "lateral raise": ("elevacao_lateral", "externo"),
+    "shoulder press": ("desenvolvimento", "externo"),
+    "squat": ("agachamento", "externo"),
+    # vídeos de banco de imagens (internet), adicionados em 08/11/2026
+    "Agachamento_novo": ("agachamento", "internet"),
+    "Desenvolvimento_novo": ("desenvolvimento", "internet"),
+    "Elecacao_lateral_novo": ("elevacao_lateral", "internet"),
+    "Biceps": ("biceps", "internet"),
+}
+
 # =========================================================
 # EXERCÍCIOS VÁLIDOS (pra validação do nome do arquivo)
 # =========================================================
@@ -201,7 +231,25 @@ for f in sorted(all_files):
     if parsed is None:
         videos_invalidos.append(f)
     else:
-        videos_validos.append((f, parsed))
+        videos_validos.append((f, parsed, video_folder))
+
+if INCLUIR_EXTERNOS:
+    for pasta, (exercicio, origem) in PASTAS_EXTERNAS.items():
+        pasta_path = PROJECT_ROOT / "videos" / pasta
+        if not pasta_path.exists():
+            print(f"[AVISO] Pasta externa não encontrada: {pasta_path}")
+            continue
+        for f in sorted(os.listdir(pasta_path)):
+            if not f.lower().endswith(video_extensions):
+                continue
+            stem = f.rsplit(".", 1)[0].replace(" ", "-")
+            videos_validos.append((f, {
+                "pessoa": origem,
+                "sessao": f"{origem}_{stem}_{f.rsplit('.', 1)[1].lower()}",
+                "exercicio": exercicio,
+                "execucao": "correta",
+                "sequencial": stem,
+            }, pasta_path))
 
 if videos_invalidos:
     print(f"\n[AVISO] {len(videos_invalidos)} arquivo(s) com nome fora da convenção (serão ignorados):")
@@ -215,11 +263,21 @@ if not videos_validos:
     print("\n[ERRO] Nenhum vídeo válido encontrado. Nada a processar.")
     sys.exit(1)
 
+if CSV_BASE is not None:
+    # pula vídeos que já estão no CSV base (evita reprocessar)
+    ja_processados = set(pd.read_csv(CSV_BASE, usecols=["video_id"])["video_id"])
+    antes = len(videos_validos)
+    videos_validos = [
+        v for v in videos_validos
+        if os.path.join(str(v[2]), v[0]) not in ja_processados
+    ]
+    print(f"\n{antes - len(videos_validos)} vídeo(s) já estão em {CSV_BASE.name} e serão reaproveitados.")
+
 print(f"\nVídeos válidos a processar: {len(videos_validos)}")
 
 # Resumo do que vai ser processado
 resumo = {}
-for _, parsed in videos_validos:
+for _, parsed, _ in videos_validos:
     key = (parsed["pessoa"], parsed["sessao"], parsed["exercicio"], parsed["execucao"])
     resumo[key] = resumo.get(key, 0) + 1
 
@@ -248,9 +306,9 @@ print("Modelo carregado com sucesso!")
 
 all_data = []
 
-for video_idx, (video_name, parsed) in enumerate(videos_validos, start=1):
+for video_idx, (video_name, parsed, pasta_video) in enumerate(videos_validos, start=1):
 
-    video_path = os.path.join(str(video_folder), video_name)
+    video_path = os.path.join(str(pasta_video), video_name)
 
     print(f"\n[{video_idx}/{len(videos_validos)}] {video_name}")
     print(f"  pessoa={parsed['pessoa']} sessao={parsed['sessao']} "
@@ -333,6 +391,13 @@ new_df = pd.DataFrame(all_data)
 if new_df.empty:
     print("\n[AVISO] Nenhum frame foi extraído de nenhum vídeo. CSV não será gerado.")
     sys.exit(0)
+
+if CSV_BASE is not None:
+    base_df = pd.read_csv(CSV_BASE)
+    # evita duplicar vídeos que já estão no CSV base
+    new_df = new_df[~new_df["video_id"].isin(set(base_df["video_id"]))]
+    print(f"\nJuntando com {CSV_BASE.name}: {len(base_df)} + {len(new_df)} linhas")
+    new_df = pd.concat([base_df, new_df], ignore_index=True)[base_df.columns]
 
 # =========================================================
 # SALVAR CSV COM TIMESTAMP (nunca sobrescreve o anterior)

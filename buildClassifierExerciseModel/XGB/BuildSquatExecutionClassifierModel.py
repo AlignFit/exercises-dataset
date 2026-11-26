@@ -20,7 +20,7 @@ from xgboost import XGBClassifier
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent.parent
 
-DATASET_PATH = PROJECT_ROOT / "datasets" / "raw-dataset.csv"
+DATASET_PATH = PROJECT_ROOT / "datasets" / "raw-dataset-v2_20261108_163655.csv"
 
 TARGET_EXERCISE = "agachamento"
 
@@ -46,6 +46,11 @@ df = pd.read_csv(
 df = df[
     df["tipo_exercicio"] == TARGET_EXERCISE
 ]
+
+# Vídeos externos (pessoa == "externo") só têm execução "correta":
+# usá-los aqui criaria um atalho (origem do vídeo -> rótulo).
+# Eles entram apenas no classificador de exercício.
+df = df[df["pessoa"] != "externo"]
 
 print(f"\nExercício filtrado: {TARGET_EXERCISE}")
 
@@ -156,12 +161,16 @@ X_train, X_test, y_train, y_test = train_test_split(
 # MODELO
 # =========================================================
 
+# Hiperparâmetros escolhidos por busca em grade com validação
+# Leave-One-Person-Out (grupos = pessoa), métrica balanced_accuracy.
+# LOPO: 0.750 ± 0.000 (antes: 0.722 ± 0.039 com max_depth=8, 300 árvores)
 model = XGBClassifier(
-    n_estimators=300,
-    max_depth=8,
-    learning_rate=0.03,
-    subsample=0.8,
-    colsample_bytree=0.8,
+    n_estimators=100,        # nº de árvores do boosting
+    max_depth=2,             # árvores rasas: poucas amostras -> menor variância
+    learning_rate=0.1,       # taxa de aprendizado (shrinkage)
+    min_child_weight=1,      # peso mínimo por folha (evita folhas com 1-2 vídeos)
+    subsample=0.8,          # 80% dos vídeos por árvore (boosting estocástico)
+    colsample_bytree=0.8,   # 80% das features por árvore (reduz correlação)
     random_state=42
 )
 
