@@ -17,7 +17,7 @@ pessoas da equipe. Rodar de dentro da pasta, nesta ordem (o 1 gera
 | `1_atributos_e_modelos.py <base.csv>` | coordenadas × pessoa principal × biomecânicos; XGB, LogReg, SVM, RF, ExtraTrees | atributos biomecânicos: +7 a 8 pontos |
 | `2_combinacoes_e_conformidade.py` | combinações de modelos, atributos por exercício e **conformidade** | conformidade + externos detecta 75–100% dos erros |
 | `3_frame_a_frame.py <base.csv>` | classificar cada frame e votar por vídeo | não supera os atributos por vídeo |
-| `4_classificador_exercicio.py` | classificador de exercício com os novos atributos | RF biomecânico + coordenadas: 95,8% |
+| `4_classificador_exercicio.py` | classificador de exercício com os novos atributos | biomecânico + coordenadas: RF 95,8%, XGBoost 94,0% (mantido o XGBoost) |
 | `teste_externo.py <keypoints.csv>` | modelos treinados na base inteira aplicados a vídeos novos | conformidade aceitou 8/11 corretas externas |
 
 `feats_exploracao.py` é a primeira versão dos atributos biomecânicos; a versão

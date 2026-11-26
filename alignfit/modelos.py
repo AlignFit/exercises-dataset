@@ -10,10 +10,10 @@ que treino, inferência local e produção usam a mesma interface:
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import LabelEncoder, StandardScaler
+from xgboost import XGBClassifier
 
 VERSAO_ATRIBUTOS = "biomecanico-v1"
 
@@ -21,21 +21,31 @@ VERSAO_ATRIBUTOS = "biomecanico-v1"
 class ClassificadorExercicio:
     """Estágio 2: identifica o exercício.
 
-    Random Forest sobre atributos biomecânicos + coordenadas da pessoa
-    principal. Treinado com todos os vídeos (equipe + externos)."""
+    XGBoost sobre atributos biomecânicos + coordenadas da pessoa principal,
+    treinado com todos os vídeos (equipe + externos). Hiperparâmetros da
+    busca em grade por pessoa feita para a versão anterior (árvores rasas,
+    adequadas a poucos dados). Valores ausentes (NaN) são tratados pelo
+    próprio XGBoost.
+
+    Comparação na base v2 (por pessoa): XGBoost 94,0% x Random Forest 95,8%;
+    nos 11 vídeos externos de teste, ambos acertaram 11/11."""
 
     versao_atributos = VERSAO_ATRIBUTOS
 
-    def __init__(self, n_arvores=500, semente=0):
-        self.n_arvores = n_arvores
+    def __init__(self, semente=42):
         self.semente = semente
 
     def fit(self, X: pd.DataFrame, exercicios):
         self.colunas = list(X.columns)
         self.rotulos = LabelEncoder().fit(exercicios)
-        self.modelo = make_pipeline(
-            SimpleImputer(strategy="median"),
-            RandomForestClassifier(self.n_arvores, class_weight="balanced", random_state=self.semente),
+        self.modelo = XGBClassifier(
+            n_estimators=300,      # nº de árvores do boosting
+            max_depth=2,           # árvores rasas: poucas amostras -> menor variância
+            learning_rate=0.1,
+            min_child_weight=3,    # evita folhas com 1-2 vídeos
+            subsample=0.8,         # 80% dos vídeos por árvore
+            colsample_bytree=0.8,  # 80% dos atributos por árvore
+            random_state=self.semente,
         ).fit(X[self.colunas].values, self.rotulos.transform(exercicios))
         return self
 

@@ -5,7 +5,7 @@
 # exercício aparece no vídeo (agachamento, bíceps,
 # desenvolvimento ou elevação lateral).
 #
-# Modelo   : Random Forest (alignfit.modelos.ClassificadorExercicio)
+# Modelo   : XGBoost (alignfit.modelos.ClassificadorExercicio)
 # Atributos: biomecânicos + coordenadas da pessoa principal
 #            (alignfit.atributos.atributos_completos)
 #

@@ -27,7 +27,7 @@ elevação lateral.
    considerada. Dos seus pontos saem medidas biomecânicas (ângulos de joelho,
    quadril, cotovelo e ombro, inclinação do tronco, alturas e larguras
    normalizadas pelo tamanho do tronco), resumidas por vídeo junto com as
-   coordenadas (409 atributos). Um Random Forest identifica o exercício.
+   coordenadas (409 atributos). Um XGBoost identifica o exercício.
 3. **Classificação da execução (conformidade)** — o modelo do exercício
    conhece o padrão das execuções **corretas** e mede quanto o vídeo se afasta
    dele. Acima de um limiar, a execução é considerada errada (Seção 8 do TCC).
@@ -138,7 +138,7 @@ Acurácia balanceada **por pessoa** (o modelo nunca viu a pessoa testada);
 
 | Modelo | Por pessoa | Erradas detectadas | Corretas aceitas |
 |---|---|---|---|
-| Exercício | 95,8% (93,7%) | — | — |
+| Exercício | 94,0% (93,7%) | — | — |
 | Execução — agachamento | 68,1% (75,0%) | 75% | 75% |
 | Execução — bíceps | 79,2% (70,8%) | 100% | 42% |
 | Execução — desenvolvimento | 77,8% (62,5%) | 100% | 50% |
@@ -159,4 +159,4 @@ técnica"), não como veredito.
 |---|---|
 | tag `v1-antes-da-reorganizacao` | estado antes da reorganização (nomes antigos: `adm/`, `user/`, `models/`…) |
 | commit `1a8be2c` | última versão com o modelo de coordenadas (XGBoost) |
-| atual | atributos biomecânicos + Random Forest (exercício) + conformidade (execução) |
+| atual | atributos biomecânicos + XGBoost (exercício) + conformidade (execução) |
