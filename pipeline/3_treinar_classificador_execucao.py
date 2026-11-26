@@ -4,9 +4,12 @@
 # Estágio 3 do pipeline: treina, para cada exercício, o modelo
 # que diz se a execução está CORRETA ou ERRADA.
 #
-# Substitui os 4 scripts antigos (BuildSquat/Biceps/ShoulderPress/
-# LateralRaiseExecutionClassifierModel.py), que eram idênticos a
-# não ser pelo exercício e pelos hiperparâmetros abaixo.
+# Modelo   : conformidade (alignfit.modelos.ModeloConformidade,
+#            Seção 8 do TCC). Aprende só o padrão da execução
+#            correta e marca como errada o que se afasta dele.
+# Dados    : execuções corretas da equipe + vídeos externos
+#            (todos corretos). As execuções erradas da equipe
+#            servem só para AVALIAR o modelo.
 #
 # Entrada : dados/base-v2.csv
 # Saída   : modelos/execucao-<exercicio>.pkl
@@ -23,107 +26,78 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import joblib
-from sklearn.metrics import classification_report, balanced_accuracy_score
-from sklearn.model_selection import train_test_split
-from xgboost import XGBClassifier
+import numpy as np
 import pandas as pd
+from sklearn.metrics import balanced_accuracy_score, confusion_matrix
 
 from alignfit import caminhos
-from alignfit.atributos import atributos_por_video
+from alignfit.atributos import atributos_completos
 from alignfit.keypoints import EXERCICIOS
+from alignfit.modelos import ModeloConformidade
 
-# =========================================================
-# HIPERPARÂMETROS POR EXERCÍCIO
-# =========================================================
-# Escolhidos por busca em grade com validação Leave-One-Person-Out
-# (grupos = pessoa), métrica balanced_accuracy. Valores LOPO obtidos:
-#   agachamento       0.750 ± 0.000  (antes 0.722 com max_depth=8, 300 árvores)
-#   biceps            0.708 ± 0.156  (antes 0.625)
-#   desenvolvimento   0.625 ± 0.177  (antes 0.625)
-#   elevacao_lateral  0.653 ± 0.071  (igual, modelo mais simples)
-
-TAXA_APRENDIZADO = {
-    "agachamento": 0.1,
-    "biceps": 0.03,
-    "desenvolvimento": 0.1,
-    "elevacao_lateral": 0.03,
-}
+PESSOAS_EQUIPE = ["bruno", "caio", "paulo"]
 
 
-def criar_modelo(exercicio):
-    return XGBClassifier(
-        n_estimators=100,        # nº de árvores do boosting
-        max_depth=2,             # árvores rasas: poucas amostras -> menor variância
-        learning_rate=TAXA_APRENDIZADO[exercicio],
-        min_child_weight=1,
-        subsample=0.8,           # 80% dos vídeos por árvore
-        colsample_bytree=0.8,    # 80% dos atributos por árvore
-        random_state=42,
-    )
+def treinar_modelo(exercicio, X, y, externo):
+    """Padrão = corretas (equipe + externos); limiar = corretas da equipe."""
+    corretas = y == 0
+    return ModeloConformidade(exercicio).fit(X[corretas], X[corretas & ~externo])
 
 
-def avaliar_por_pessoa(X, y, pessoas, exercicio):
-    """Leave-One-Person-Out: treina com todas as pessoas menos uma e testa
-    nela. É a avaliação honesta usada no TCC (sem vazamento de sessão)."""
-    resultados = {}
-    for pessoa in sorted(set(pessoas)):
+def avaliar_por_pessoa(exercicio, X, y, pessoas, externo):
+    """Leave-One-Person-Out: o modelo nunca viu a pessoa testada."""
+    previsto = np.zeros(len(y), dtype=int)
+    por_pessoa = {}
+    for pessoa in PESSOAS_EQUIPE:
         teste = pessoas == pessoa
-        modelo = criar_modelo(exercicio).fit(X[~teste], y[~teste])
-        resultados[pessoa] = balanced_accuracy_score(y[teste], modelo.predict(X[teste]))
-    return resultados
+        modelo = treinar_modelo(exercicio, X[~teste], y[~teste], externo[~teste])
+        previsto[teste] = modelo.predict(X[teste])
+        por_pessoa[pessoa] = balanced_accuracy_score(y[teste], previsto[teste])
+    return por_pessoa, previsto
 
 
-def treinar(df, exercicio):
+def treinar(exercicio, X_todos, meta_todos):
     print("\n========================================")
     print(f"Exercício: {exercicio}")
     print("========================================")
 
-    dados = df[df["tipo_exercicio"] == exercicio]
+    sel = (meta_todos["tipo_exercicio"] == exercicio).values
+    X, meta = X_todos[sel], meta_todos[sel]
+    y = (meta["tipo_execucao"] == "errada").astype(int).values
+    pessoas = meta["pessoa"].values
+    externo = pessoas == "externo"
+    print(f"Equipe: {int((~externo & (y == 0)).sum())} corretas, {int((y == 1).sum())} erradas"
+          f"  |  externos: {int(externo.sum())} corretas")
 
-    # Vídeos externos só têm execução "correta": usá-los aqui criaria um
-    # atalho (origem do vídeo -> rótulo). Eles entram apenas no
-    # classificador de exercício.
-    dados = dados[dados["pessoa"] != "externo"]
-
-    X = atributos_por_video(dados, chave="video")
-    meta = dados.groupby("video")[["tipo_execucao", "pessoa"]].first().loc[X.index]
-    y = meta["tipo_execucao"].map({"correta": 0, "errada": 1}).values
-    X = X.values
-
-    print(f"Vídeos: {len(y)}  (corretas={int((y == 0).sum())}, erradas={int((y == 1).sum())})")
-
-    # Avaliação 1 — por pessoa (número reportado no TCC)
-    lopo = avaliar_por_pessoa(X, y, meta["pessoa"].values, exercicio)
-    media = sum(lopo.values()) / len(lopo)
+    por_pessoa, previsto = avaliar_por_pessoa(exercicio, X, y, pessoas, externo)
     print("\nAcurácia balanceada por pessoa (Leave-One-Person-Out):")
-    for pessoa, acc in lopo.items():
+    for pessoa, acc in por_pessoa.items():
         print(f"  {pessoa:8s} {acc:.3f}")
-    print(f"  média    {media:.3f}")
+    print(f"  média    {np.mean(list(por_pessoa.values())):.3f}")
 
-    # Avaliação 2 — split aleatório 80/20 (referência)
-    X_treino, X_teste, y_treino, y_teste = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
-    modelo = criar_modelo(exercicio).fit(X_treino, y_treino)
-    print("\nSplit aleatório 80/20:")
-    print(classification_report(y_teste, modelo.predict(X_teste),
-                                target_names=["correta", "errada"], zero_division=0))
+    eq = ~externo
+    (vn, fp), (fn, vp) = confusion_matrix(y[eq], previsto[eq], labels=[0, 1])
+    print(f"\nErradas detectadas : {vp}/{vp + fn} ({vp / (vp + fn):.0%})")
+    print(f"Corretas aceitas   : {vn}/{vn + fp} ({vn / (vn + fp):.0%})")
 
-    # Modelo salvo = o treinado no split 80/20 (mesmo comportamento da versão anterior)
+    final = treinar_modelo(exercicio, X, y, externo)
     saida = caminhos.modelo_execucao(exercicio)
-    joblib.dump(modelo, saida)
-    print(f"Modelo salvo: {saida}")
+    joblib.dump(final, saida)
+    print(f"\nModelo salvo: {saida}  (limiar = {final.limiar:.3f}, {len(final.colunas)} atributos)")
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--exercicio", choices=EXERCICIOS,
-                        help="treina só este exercício (padrão: todos)")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--exercicio", choices=EXERCICIOS, help="treina só este exercício (padrão: todos)")
     args = parser.parse_args()
 
+    print("Carregando base e calculando atributos...")
     df = pd.read_csv(caminhos.BASE_TREINO)
+    X = atributos_completos(df)
+    meta = df.groupby("video")[["tipo_exercicio", "tipo_execucao", "pessoa"]].first().loc[X.index]
+
     for exercicio in [args.exercicio] if args.exercicio else EXERCICIOS:
-        treinar(df, exercicio)
+        treinar(exercicio, X, meta)
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ import joblib
 import pandas as pd
 
 from alignfit import caminhos
-from alignfit.atributos import atributos_por_video
+from alignfit.atributos import atributos_completos
 from alignfit.keypoints import EXERCICIOS
 from prever_exercicio import prever_exercicio
 
@@ -29,19 +29,22 @@ from prever_exercicio import prever_exercicio
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--csv", type=Path, default=caminhos.DADOS / "video-usuario.csv")
-    parser.add_argument("--exercicio", choices=EXERCICIOS,
-                        help="pula a identificação do exercício")
+    parser.add_argument("--exercicio", choices=EXERCICIOS, help="pula a identificação do exercício")
     args = parser.parse_args()
 
-    df = pd.read_csv(args.csv)
-    X = atributos_por_video(df)
-    exercicios = (pd.Series(args.exercicio, index=X.index) if args.exercicio
-                  else prever_exercicio(df))
+    X = atributos_completos(pd.read_csv(args.csv))
+    if args.exercicio:
+        exercicios = pd.DataFrame({"exercicio": args.exercicio, "confianca": float("nan")}, index=X.index)
+    else:
+        exercicios = prever_exercicio(X)
 
-    for video, exercicio in exercicios.items():
-        modelo = joblib.load(caminhos.modelo_execucao(exercicio))
-        errada = modelo.predict(X.loc[[video]].values)[0] == 1
-        print(f"{video}: exercício={exercicio}  execução={'ERRADA' if errada else 'CORRETA'}")
+    for video, linha in exercicios.iterrows():
+        modelo = joblib.load(caminhos.modelo_execucao(linha.exercicio))
+        x = X.loc[[video]]
+        errada = modelo.predict(x)[0] == 1
+        conf = "" if pd.isna(linha.confianca) else f" ({linha.confianca:.0%})"
+        print(f"{video}: exercício={linha.exercicio}{conf}  execução={'ERRADA' if errada else 'CORRETA'}"
+              f"  [afastamento {modelo.afastamento(x)[0]:.2f} / limiar {modelo.limiar:.2f}]")
 
 
 if __name__ == "__main__":

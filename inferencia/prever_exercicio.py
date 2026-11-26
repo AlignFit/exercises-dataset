@@ -19,15 +19,18 @@ import joblib
 import pandas as pd
 
 from alignfit import caminhos
-from alignfit.atributos import atributos_por_video
+from alignfit.atributos import atributos_completos
 
 
-def prever_exercicio(df: pd.DataFrame) -> pd.Series:
-    """Retorna o exercício previsto para cada vídeo do DataFrame."""
+def prever_exercicio(X: pd.DataFrame) -> pd.DataFrame:
+    """Recebe a tabela de atributos_completos e devolve, por vídeo, o
+    exercício previsto e a confiança do modelo."""
     modelo = joblib.load(caminhos.MODELO_EXERCICIO)
-    rotulos = joblib.load(caminhos.ROTULOS_EXERCICIO)
-    X = atributos_por_video(df)
-    return pd.Series(rotulos.inverse_transform(modelo.predict(X.values)), index=X.index)
+    proba = modelo.predict_proba(X)
+    return pd.DataFrame(
+        {"exercicio": [modelo.classes[i] for i in proba.argmax(1)], "confianca": proba.max(1)},
+        index=X.index,
+    )
 
 
 def main():
@@ -35,8 +38,9 @@ def main():
     parser.add_argument("--csv", type=Path, default=caminhos.DADOS / "video-usuario.csv")
     args = parser.parse_args()
 
-    for video, exercicio in prever_exercicio(pd.read_csv(args.csv)).items():
-        print(f"{video}: {exercicio}")
+    X = atributos_completos(pd.read_csv(args.csv))
+    for video, linha in prever_exercicio(X).iterrows():
+        print(f"{video}: {linha.exercicio} (confiança {linha.confianca:.0%})")
 
 
 if __name__ == "__main__":

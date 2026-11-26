@@ -10,3 +10,9 @@ __pycache__/
 dados/video-usuario.csv
 experimentos/legado/**/saida/
 experimentos/legado/extracao/base-v1-gerada.csv
+
+# Saídas dos scripts de otimização
+experimentos/otimizacao/*.pkl
+experimentos/otimizacao/*.csv
+experimentos/otimizacao/*.json
+experimentos/legado/modelo_coordenadas/saida/

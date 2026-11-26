@@ -23,11 +23,14 @@ elevação lateral.
 
 1. **Extração de pose** — o YOLOv8-Pose encontra 17 pontos do corpo (ombros,
    cotovelos, joelhos…) em 1 a cada 5 frames do vídeo.
-2. **Classificação do exercício** — as coordenadas de todos os frames são
-   resumidas em 136 atributos por vídeo (média, desvio, mínimo e máximo de cada
-   coordenada) e um XGBoost identifica o exercício.
-3. **Classificação da execução** — o modelo específico daquele exercício diz se
-   a execução está correta ou errada.
+2. **Classificação do exercício** — só a pessoa principal do vídeo é
+   considerada. Dos seus pontos saem medidas biomecânicas (ângulos de joelho,
+   quadril, cotovelo e ombro, inclinação do tronco, alturas e larguras
+   normalizadas pelo tamanho do tronco), resumidas por vídeo junto com as
+   coordenadas (409 atributos). Um Random Forest identifica o exercício.
+3. **Classificação da execução (conformidade)** — o modelo do exercício
+   conhece o padrão das execuções **corretas** e mede quanto o vídeo se afasta
+   dele. Acima de um limiar, a execução é considerada errada (Seção 8 do TCC).
 
 ---
 
@@ -48,12 +51,13 @@ exercises-dataset/
 ├── alignfit/              código compartilhado
 │   ├── caminhos.py        todos os caminhos do projeto num só lugar
 │   ├── keypoints.py       nomes dos 17 pontos e lista de exercícios
-│   ├── atributos.py       keypoints por frame → 136 atributos por vídeo
+│   ├── atributos.py       pessoa principal + keypoints por frame → atributos por vídeo
+│   ├── modelos.py         ClassificadorExercicio e ModeloConformidade
 │   └── sessoes.py         identifica a sessão de gravação (usado nos experimentos da base v1)
 │
 ├── dados/                 bases de keypoints (CSV)        → ver dados/README.md
 ├── modelos/               modelos treinados (.pkl)        → ver modelos/README.md
-├── experimentos/          notebooks e scripts das Seções 4–6 do TCC → ver experimentos/README.md
+├── experimentos/          otimização, notebooks e versões antigas → ver experimentos/README.md
 ├── yolo/                  pesos do YOLOv8n-Pose
 └── videos/                vídeos brutos (fora do git, 2,4 GB)
 ```
@@ -117,28 +121,42 @@ pelo `iac-infra`:
 cd ../iac-infra && ./scripts/update.sh models
 ```
 
-> **Atenção:** a produção (`iac-infra/lambda/user_dataset_generator.py`) usa
-> **só a pessoa principal** de cada frame e descarta keypoints com confiança
-> < 0,5, enquanto o treino usa todas as pessoas detectadas. Os atributos são
-> calculados da mesma forma (`alignfit/atributos.py` ↔ `lambda/inference.py`).
+> ⚠ **Os modelos atuais ainda não são compatíveis com a produção.** O Lambda
+> `iac-infra/lambda/inference.py` calcula só os 136 atributos de coordenadas
+> e espera um XGBoost. Antes de publicar estes modelos, o Lambda precisa usar
+> `alignfit.atributos.atributos_completos` e `alignfit.modelos` (ver
+> `modelos/README.md`). Até lá, a produção segue com o modelo de coordenadas
+> (`experimentos/legado/modelo_coordenadas/`).
 
 ---
 
 ## Resultados atuais (base v2)
 
-| Modelo | Avaliação | Resultado |
-|---|---|---|
-| Exercício | split aleatório 80/20 (48 vídeos) | 79,2% |
-| Exercício | por pessoa da equipe | 93,7% |
-| Execução — agachamento | por pessoa | 75,0% |
-| Execução — bíceps | por pessoa | 70,8% |
-| Execução — desenvolvimento | por pessoa | 62,5% |
-| Execução — elevação lateral | por pessoa | 65,3% |
+Acurácia balanceada **por pessoa** (o modelo nunca viu a pessoa testada);
+50% equivale a um palpite aleatório. Entre parênteses, o modelo anterior
+(XGBoost só com coordenadas).
 
-Acurácia balanceada; 50% equivale a um palpite aleatório.
+| Modelo | Por pessoa | Erradas detectadas | Corretas aceitas |
+|---|---|---|---|
+| Exercício | 95,8% (93,7%) | — | — |
+| Execução — agachamento | 68,1% (75,0%) | 75% | 75% |
+| Execução — bíceps | 79,2% (70,8%) | 100% | 42% |
+| Execução — desenvolvimento | 77,8% (62,5%) | 100% | 50% |
+| Execução — elevação lateral | 72,2% (65,3%) | 92% | 58% |
+
+**Teste externo** (11 vídeos de elevação lateral correta, gravados fora da
+base): exercício identificado em 11/11 (antes 10/11); execução aceita como
+correta em 8/11 (antes 3/11).
+
+O modelo de conformidade **prefere alertar a mais**: detecta quase todos os
+erros, mas parte das execuções corretas também é marcada como errada. O
+retorno ao usuário deve ser tratado como alerta ("possível erro, revise a
+técnica"), não como veredito.
 
 ## Histórico
 
-| Tag / versão | O que é |
+| Versão | O que é |
 |---|---|
-| `v1-antes-da-reorganizacao` | estado do repositório antes desta reorganização (nomes antigos: `adm/`, `user/`, `models/`…) |
+| tag `v1-antes-da-reorganizacao` | estado antes da reorganização (nomes antigos: `adm/`, `user/`, `models/`…) |
+| commit `1a8be2c` | última versão com o modelo de coordenadas (XGBoost) |
+| atual | atributos biomecânicos + Random Forest (exercício) + conformidade (execução) |

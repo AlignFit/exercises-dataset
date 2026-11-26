@@ -15,7 +15,6 @@ BASE_TREINO = DADOS / "base-v2.csv"
 
 # Modelos gerados pelo pipeline e consumidos pela produção (iac-infra)
 MODELO_EXERCICIO = MODELOS / "classificador-exercicio.pkl"
-ROTULOS_EXERCICIO = MODELOS / "rotulos-exercicio.pkl"
 
 
 def modelo_execucao(exercicio: str) -> Path:
